@@ -4,62 +4,55 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 )
 
-// ServiceInfo holds metadata about a discovered gRPC service.
-type ServiceInfo struct {
-	Name    string
-	Methods []string
-}
-
-// Reflector uses gRPC server reflection to discover services and methods.
+// Reflector wraps gRPC server reflection to discover services and methods.
 type Reflector struct {
 	conn *grpc.ClientConn
 }
 
-// NewReflector creates a new Reflector for the given connection.
+// NewReflector creates a new Reflector for the given gRPC connection.
 func NewReflector(conn *grpc.ClientConn) *Reflector {
 	return &Reflector{conn: conn}
 }
 
-// ListServices returns all services exposed by the gRPC server via reflection.
-func (r *Reflector) ListServices(ctx context.Context) ([]ServiceInfo, error) {
-	stub := grpc_reflection_v1alpha.NewServerReflectionClient(r.conn)
+// ListServices returns the fully-qualified names of all services exposed by the server.
+func (r *Reflector) ListServices(ctx context.Context) ([]string, error) {
+	stub := reflectpb.NewServerReflectionClient(r.conn)
+	client := grpcreflect.NewClient(ctx, stub)
+	defer client.Reset()
 
-	stream, err := stub.ServerReflectionInfo(ctx)
+	services, err := client.ListServices()
 	if err != nil {
-		return nil, fmt.Errorf("opening reflection stream: %w", err)
+		return nil, fmt.Errorf("reflection list services: %w", err)
 	}
-	defer stream.CloseSend()
-
-	err = stream.Send(&grpc_reflection_v1alpha.ServerReflectionRequest{
-		MessageRequest: &grpc_reflection_v1alpha.ServerReflectionRequest_ListServices{
-			ListServices: "",
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("sending list services request: %w", err)
-	}
-
-	resp, err := stream.Recv()
-	if err != nil {
-		return nil, fmt.Errorf("receiving list services response: %w", err)
-	}
-
-	listResp, ok := resp.MessageResponse.(*grpc_reflection_v1alpha.ServerReflectionResponse_ListServicesResponse)
-	if !ok {
-		return nil, fmt.Errorf("unexpected response type: %T", resp.MessageResponse)
-	}
-
-	var services []ServiceInfo
-	for _, svc := range listResp.ListServicesResponse.Service {
-		services = append(services, ServiceInfo{
-			Name:    svc.Name,
-			Methods: []string{},
-		})
-	}
-
 	return services, nil
+}
+
+// ResolveService returns the ServiceDescriptor for the named service.
+func (r *Reflector) ResolveService(ctx context.Context, serviceName string) (*desc.ServiceDescriptor, error) {
+	stub := reflectpb.NewServerReflectionClient(r.conn)
+	client := grpcreflect.NewClient(ctx, stub)
+	defer client.Reset()
+
+	fd, err := client.FileContainingSymbol(serviceName)
+	if err != nil {
+		return nil, fmt.Errorf("reflection resolve service %q: %w", serviceName, err)
+	}
+
+	sd := fd.FindSymbol(serviceName)
+	if sd == nil {
+		return nil, fmt.Errorf("symbol %q not found in file descriptor", serviceName)
+	}
+
+	svcDesc, ok := sd.(*desc.ServiceDescriptor)
+	if !ok {
+		return nil, fmt.Errorf("symbol %q is not a service", serviceName)
+	}
+
+	return svcDesc, nil
 }
