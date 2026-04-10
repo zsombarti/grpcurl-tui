@@ -55,3 +55,15 @@ func TestReflector_ListServices_CancelledContext(t *testing.T) {
 		t.Fatal("expected error for cancelled context, got nil")
 	}
 }
+
+// newTestReflector is a helper that creates a Client and Reflector for use in
+// tests, returning a cleanup function that should be deferred by the caller.
+func newTestReflector(t *testing.T) (*Reflector, func()) {
+	t.Helper()
+	client, err := NewClient("localhost:50051")
+	if err != nil {
+		t.Fatalf("NewClient returned unexpected error: %v", err)
+	}
+	reflector := NewReflector(client.conn)
+	return reflector, func() { client.Close() }
+}
