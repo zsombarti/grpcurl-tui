@@ -68,3 +68,13 @@ func (p *ConnectionPanel) SetStatus(activeCount int, addresses []string) {
 	}
 	p.statusView.SetText(text)
 }
+
+// Focus sets keyboard focus to the address input field.
+func (p *ConnectionPanel) Focus(delegate func(tview.Primitive)) {
+	delegate(p.input)
+}
+
+// GetAddress returns the current text in the address input field.
+func (p *ConnectionPanel) GetAddress() string {
+	return p.input.GetText()
+}
