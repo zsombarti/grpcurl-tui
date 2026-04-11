@@ -76,3 +76,12 @@ func (p *RetryPanel) GetPolicy() grpcpkg.RetryPolicy {
 		Multiplier:   multiplier,
 	}
 }
+
+// Reset restores all form fields to their default values.
+func (p *RetryPanel) Reset() {
+	defaults := grpcpkg.DefaultRetryPolicy()
+	p.maxAttemptsField.SetText(strconv.Itoa(defaults.MaxAttempts))
+	p.initialDelayField.SetText(fmt.Sprintf("%d", defaults.InitialDelay.Milliseconds()))
+	p.maxDelayField.SetText(fmt.Sprintf("%d", defaults.MaxDelay.Milliseconds()))
+	p.multiplierField.SetText(fmt.Sprintf("%.1f", defaults.Multiplier))
+}
