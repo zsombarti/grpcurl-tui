@@ -63,3 +63,18 @@ func (e *EnvLoader) Len() int {
 func (e *EnvLoader) Clear() {
 	e.pairs = nil
 }
+
+// Get returns the value associated with the given key, and whether it was found.
+// If the key appears multiple times, the last value wins.
+func (e *EnvLoader) Get(key string) (string, bool) {
+	var found bool
+	var value string
+	for _, pair := range e.pairs {
+		k, v, _ := strings.Cut(pair, "=")
+		if k == key {
+			value = v
+			found = true
+		}
+	}
+	return value, found
+}
