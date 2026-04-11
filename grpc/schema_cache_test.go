@@ -72,6 +72,16 @@ func TestSchemaCache_Invalidate(t *testing.T) {
 	}
 }
 
+func TestSchemaCache_Invalidate_NonexistentKey(t *testing.T) {
+	c := NewSchemaCache(time.Minute)
+	c.Set("svc.Baz", nil)
+	// Invalidating a key that doesn't exist should be a no-op.
+	c.Invalidate("svc.DoesNotExist")
+	if c.Len() != 1 {
+		t.Fatalf("expected 1 entry after invalidating nonexistent key, got %d", c.Len())
+	}
+}
+
 func TestSchemaCache_Flush(t *testing.T) {
 	c := NewSchemaCache(time.Minute)
 	c.Set("a", nil)
