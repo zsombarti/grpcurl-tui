@@ -13,3 +13,13 @@ func dialInsecure(addr string) (*grpc.ClientConn, error) {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 }
+
+// mustDialInsecure is like dialInsecure but panics if the connection cannot be
+// created. Intended for use in tests where a failure to dial is unrecoverable.
+func mustDialInsecure(addr string) *grpc.ClientConn {
+	conn, err := dialInsecure(addr)
+	if err != nil {
+		panic("mustDialInsecure: " + err.Error())
+	}
+	return conn
+}
