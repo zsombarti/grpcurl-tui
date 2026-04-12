@@ -64,3 +64,19 @@ func (p *AuditPanel) Clear() {
 	p.auditor.Clear()
 	p.Refresh()
 }
+
+// SelectedEntry returns the audit entry corresponding to the currently
+// selected table row, or nil if no data row is selected.
+func (p *AuditPanel) SelectedEntry() *grpcpkg.AuditEntry {
+	row, _ := p.table.GetSelection()
+	// Row 0 is the header; valid data rows start at 1.
+	if row < 1 {
+		return nil
+	}
+	entries := p.auditor.Entries()
+	idx := row - 1
+	if idx >= len(entries) {
+		return nil
+	}
+	return &entries[idx]
+}
