@@ -31,6 +31,9 @@ func NewHistoryExporter(h *History) *HistoryExporter {
 // ExportToFile writes history entries to path using the specified format.
 func (e *HistoryExporter) ExportToFile(path string, format ExportFormat) error {
 	entries := e.history.Entries()
+	if len(entries) == 0 {
+		return fmt.Errorf("no history entries to export")
+	}
 	switch format {
 	case ExportFormatJSON:
 		return e.writeJSON(path, entries)
@@ -60,8 +63,13 @@ func (e *HistoryExporter) writeText(path string, entries []HistoryEntry) error {
 		_, err = fmt.Fprintf(f, "[%s] %s %s\n  request:  %s\n  response: %s\n\n",
 			ts, en.Address, en.Method, en.Request, en.Response)
 		if err != nil {
-			return err
+			return fmt.Errorf("write entry: %w", err)
 		}
 	}
 	return nil
+}
+
+// SupportedExportFormats returns all valid ExportFormat values.
+func SupportedExportFormats() []ExportFormat {
+	return []ExportFormat{ExportFormatJSON, ExportFormatText}
 }
