@@ -74,3 +74,20 @@ func TestTLSBuilder_Build_MissingClientKeyPair(t *testing.T) {
 		t.Fatal("expected error for missing client cert/key")
 	}
 }
+
+func TestTLSBuilder_Build_EnabledNoOptions(t *testing.T) {
+	// TLS enabled with no CA cert, no insecure flag, and no client cert should
+	// succeed and return a tls.Config that uses the system certificate pool.
+	cfg := TLSConfig{Enabled: true}
+	b := NewTLSBuilder(cfg)
+	tlsCfg, err := b.Build()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tlsCfg == nil {
+		t.Fatal("expected non-nil tls.Config")
+	}
+	if tlsCfg.InsecureSkipVerify {
+		t.Fatal("expected InsecureSkipVerify to be false")
+	}
+}
