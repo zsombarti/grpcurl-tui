@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -45,9 +47,9 @@ func TestExportPanel_SetAndGetPath(t *testing.T) {
 func TestExportPanel_Export_WritesFile(t *testing.T) {
 	h := grpc.NewHistory(10)
 	h.Add(grpc.HistoryEntry{
-		Address: "localhost:50051",
-		Method:  "/svc.Test/Call",
-		Request: `{}`,
+		Address:  "localhost:50051",
+		Method:   "/svc.Test/Call",
+		Request:  `{}`,
 		Response: `{}`,
 	})
 	e := grpc.NewHistoryExporter(h)
@@ -55,4 +57,27 @@ func TestExportPanel_Export_WritesFile(t *testing.T) {
 	tmp := filepath.Join(t.TempDir(), "out.json")
 	p.SetPath(tmp)
 	p.Export() // should not panic
+}
+
+func TestExportPanel_Export_FileContainsValidJSON(t *testing.T) {
+	h := grpc.NewHistory(10)
+	h.Add(grpc.HistoryEntry{
+		Address:  "localhost:50051",
+		Method:   "/svc.Test/Call",
+		Request:  `{"key":"value"}`,
+		Response: `{"result":"ok"}`,
+	})
+	e := grpc.NewHistoryExporter(h)
+	p := NewExportPanel(e)
+	tmp := filepath.Join(t.TempDir(), "out.json")
+	p.SetPath(tmp)
+	p.Export()
+
+	data, err := os.ReadFile(tmp)
+	if err != nil {
+		t.Fatalf("failed to read exported file: %v", err)
+	}
+	if !json.Valid(data) {
+		t.Fatalf("exported file does not contain valid JSON: %s", data)
+	}
 }
