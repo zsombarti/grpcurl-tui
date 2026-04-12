@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
 	grpcpkg "grpcurl-tui/grpc"
@@ -52,15 +53,25 @@ func (p *ProfilerPanel) Refresh() {
 	for i, e := range entries {
 		row := i + 1
 		errStr := ""
+		errColor := tcell.ColorWhite
 		if e.Error {
 			errStr = "yes"
+			errColor = tcell.ColorRed
 		}
 		p.table.SetCell(row, 0, tview.NewTableCell(e.Method))
 		p.table.SetCell(row, 1, tview.NewTableCell(roundDuration(e.Duration)))
 		p.table.SetCell(row, 2, tview.NewTableCell(fmt.Sprintf("%d B", e.RequestSize)))
 		p.table.SetCell(row, 3, tview.NewTableCell(fmt.Sprintf("%d B", e.ResponseSize)))
-		p.table.SetCell(row, 4, tview.NewTableCell(errStr))
+		p.table.SetCell(row, 4, tview.NewTableCell(errStr).SetTextColor(errColor))
 	}
+}
+
+// Clear removes all profiler entries from the table and resets the underlying profiler.
+func (p *ProfilerPanel) Clear() {
+	for p.table.GetRowCount() > 1 {
+		p.table.RemoveRow(p.table.GetRowCount() - 1)
+	}
+	p.profiler.Reset()
 }
 
 func roundDuration(d time.Duration) string {
