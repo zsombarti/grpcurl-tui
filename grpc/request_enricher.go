@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -25,6 +26,7 @@ func NewRequestEnricher() *RequestEnricher {
 }
 
 // AddStep registers a named enrichment function.
+// Returns an error if the name is empty, the function is nil, or the name is already registered.
 func (e *RequestEnricher) AddStep(name string, fn EnricherFunc) error {
 	if name == "" {
 		return errors.New("enricher step name must not be empty")
@@ -34,6 +36,11 @@ func (e *RequestEnricher) AddStep(name string, fn EnricherFunc) error {
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	for _, s := range e.steps {
+		if s.name == name {
+			return fmt.Errorf("enricher step %q is already registered", name)
+		}
+	}
 	e.steps = append(e.steps, enricherStep{name: name, fn: fn})
 	return nil
 }
@@ -57,7 +64,7 @@ func (e *RequestEnricher) Enrich(payload map[string]interface{}) (map[string]int
 	for _, step := range e.steps {
 		result, err := step.fn(current)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("enricher step %q failed: %w", step.name, err)
 		}
 		current = result
 	}
