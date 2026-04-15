@@ -61,6 +61,20 @@ func (n *RequestNormalizer) Normalize(payload map[string]any) (map[string]any, e
 	return out, nil
 }
 
+// NormalizeMany applies the normalization policy to each payload in the slice.
+// Returns an error if any payload is nil, including the index of the offending entry.
+func (n *RequestNormalizer) NormalizeMany(payloads []map[string]any) ([]map[string]any, error) {
+	out := make([]map[string]any, 0, len(payloads))
+	for i, p := range payloads {
+		normalized, err := n.Normalize(p)
+		if err != nil {
+			return nil, fmt.Errorf("normalizer: error at index %d: %w", i, err)
+		}
+		out = append(out, normalized)
+	}
+	return out, nil
+}
+
 // Policy returns the current normalization policy.
 func (n *RequestNormalizer) Policy() NormalizerPolicy {
 	return n.policy
