@@ -73,6 +73,23 @@ func (t *RequestTimer) Max() time.Duration {
 	return max
 }
 
+// Min returns the minimum recorded latency.
+// Returns 0 if no samples exist.
+func (t *RequestTimer) Min() time.Duration {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.samples) == 0 {
+		return 0
+	}
+	min := t.samples[0]
+	for _, s := range t.samples[1:] {
+		if s < min {
+			min = s
+		}
+	}
+	return min
+}
+
 // Clear removes all recorded samples.
 func (t *RequestTimer) Clear() {
 	t.mu.Lock()
